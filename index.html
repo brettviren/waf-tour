@@ -3,18 +3,18 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2023-04-09 Sun 17:38 -->
+<!-- 2023-04-09 Sun 17:44 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>A Tour of Waf</title>
 <meta name="author" content="BV" />
 <meta name="generator" content="Org Mode" />
-<link rel="stylesheet" type="text/css" href="org-html-themes/src/readtheorg_theme/css/htmlize.css"/>
-<link rel="stylesheet" type="text/css" href="org-html-themes/src/readtheorg_theme/css/readtheorg.css"/>
-<script type="text/javascript" src="org-html-themes/src/lib/js/jquery.min.js"></script>
-<script type="text/javascript" src="org-html-themes/src/lib/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="org-html-themes/src/lib/js/jquery.stickytableheaders.min.js"></script>
-<script type="text/javascript" src="org-html-themes/src/readtheorg_theme/js/readtheorg.js"></script>
+<link rel="stylesheet" type="text/css" href="themes/readtheorg_theme/css/htmlize.css"/>
+<link rel="stylesheet" type="text/css" href="themes/readtheorg_theme/css/readtheorg.css"/>
+<script type="text/javascript" src="themes/lib/js/jquery.min.js"></script>
+<script type="text/javascript" src="themes/lib/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="themes/lib/js/jquery.stickytableheaders.min.js"></script>
+<script type="text/javascript" src="themes/readtheorg_theme/js/readtheorg.js"></script>
 <style> #content{max-width:1800px;}</style>
 <style> p{max-width:800px;}</style>
 <style> li{max-width:800px;}</style>
@@ -29,57 +29,57 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org95706bc">1. Introduction</a>
+<li><a href="#org5edebf4">1. Introduction</a>
 <ul>
-<li><a href="#orgbfa960e">1.1. Concepts</a></li>
-<li><a href="#org0491e11">1.2. Examples</a></li>
+<li><a href="#org572def5">1.1. Concepts</a></li>
+<li><a href="#org9ec465f">1.2. Examples</a></li>
 </ul>
 </li>
-<li><a href="#org5ab10bb">2. Environment</a>
+<li><a href="#org3da79db">2. Environment</a>
 <ul>
 <li><a href="#calling-environment">2.1. Calling environment</a></li>
 </ul>
 </li>
-<li><a href="#org309b97e">3. Nodes</a>
+<li><a href="#org192a916">3. Nodes</a>
 <ul>
 <li><a href="#node-features">3.1. Node features</a></li>
 </ul>
 </li>
-<li><a href="#org0fa0000">4. Rules</a>
+<li><a href="#org9b5e085">4. Rules</a>
 <ul>
 <li><a href="#this-to-that">4.1. This to that</a></li>
 <li><a href="#source-to-target">4.2. Source to target</a></li>
-<li><a href="#org2a4a075">4.3. Rule function</a></li>
+<li><a href="#org20af9e5">4.3. Rule function</a></li>
 </ul>
 </li>
-<li><a href="#orgae5f58f">5. Tasks</a></li>
-<li><a href="#orgef448e0">6. Task generators</a></li>
-<li><a href="#org695654a">7. Contexts</a></li>
-<li><a href="#orgb0067c8">8. Options</a></li>
-<li><a href="#org51ed38e">9. Configuration</a></li>
-<li><a href="#org65c8131">10. Tools</a>
+<li><a href="#org0e7e71a">5. Tasks</a></li>
+<li><a href="#orgdce8b25">6. Task generators</a></li>
+<li><a href="#org734b458">7. Contexts</a></li>
+<li><a href="#org25bdd00">8. Options</a></li>
+<li><a href="#org172e7fa">9. Configuration</a></li>
+<li><a href="#org3dd2b62">10. Tools</a>
 <ul>
-<li><a href="#org0989b69">10.1. Using tools</a></li>
-<li><a href="#org1b73e00">10.2. Writing tools</a></li>
-<li><a href="#orgc3c6225">10.3. Built in and extra tools</a></li>
-<li><a href="#orgc2e961f">10.4. Distributing tools</a></li>
+<li><a href="#org8bf4a11">10.1. Using tools</a></li>
+<li><a href="#orgdb6e961">10.2. Writing tools</a></li>
+<li><a href="#org921250b">10.3. Built in and extra tools</a></li>
+<li><a href="#org3069a44">10.4. Distributing tools</a></li>
 </ul>
 </li>
-<li><a href="#org1a7ca73">11. Advanced Waf</a></li>
+<li><a href="#orgd09e25e">11. Advanced Waf</a></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-org95706bc" class="outline-2">
-<h2 id="org95706bc"><span class="section-number-2">1.</span> Introduction</h2>
+<div id="outline-container-org5edebf4" class="outline-2">
+<h2 id="org5edebf4"><span class="section-number-2">1.</span> Introduction</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 The <a href="https://waf.io/book">Waf book</a> opens by aptly describing Waf as an extensible build system.  That book is well written and along with the <a href="https://waf.io/apidocs/">API documentation</a> and the <a href="https://waf.io/faq.html">FAQ</a> waf documentation is comprehensive.  The goal of this Waf tour is to collect additional understanding of the Waf system from the point of view of a long time, if still amateur user, in the hopes it will augment existing Waf documentation.
 </p>
 </div>
 
-<div id="outline-container-orgbfa960e" class="outline-3">
-<h3 id="orgbfa960e"><span class="section-number-3">1.1.</span> Concepts</h3>
+<div id="outline-container-org572def5" class="outline-3">
+<h3 id="org572def5"><span class="section-number-3">1.1.</span> Concepts</h3>
 <div class="outline-text-3" id="text-1-1">
 <p>
 A Waf <b>build</b> is the execution of a set of interdependent <i>tasks</i>.  
@@ -89,14 +89,14 @@ Finally, configuration and build and other commands are managed through Waf <b>c
 </div>
 </div>
 
-<div id="outline-container-org0491e11" class="outline-3">
-<h3 id="org0491e11"><span class="section-number-3">1.2.</span> Examples</h3>
+<div id="outline-container-org9ec465f" class="outline-3">
+<h3 id="org9ec465f"><span class="section-number-3">1.2.</span> Examples</h3>
 <div class="outline-text-3" id="text-1-2">
 <p>
 This tour will have a number of examples.  They are run as part of preparing this document into HTML or PDF.  Generally they include three major waf commands in a step like:
 </p>
 
-<pre class="example" id="org663c7b3">
+<pre class="example" id="org384201c">
 waf distclean configure build
 </pre>
 
@@ -108,8 +108,8 @@ The <code>distclean</code> is not typically required nor desired.  It is include
 </div>
 
 
-<div id="outline-container-org5ab10bb" class="outline-2">
-<h2 id="org5ab10bb"><span class="section-number-2">2.</span> Environment</h2>
+<div id="outline-container-org3da79db" class="outline-2">
+<h2 id="org3da79db"><span class="section-number-2">2.</span> Environment</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 A Waf environment is similar to but distinct from both the shell environment that runs the <code>waf</code> command and the shell environments that may run commands in the service of a task.  Where not otherwise qualified, an <i>environment</i> or <i>env</i> will refer to a Waf environment.
@@ -143,7 +143,7 @@ In <code>configure()</code> we set the Waf environment variable <code>FOO</code>
 </pre>
 </div>
 
-<pre class="example" id="org78740bf">
+<pre class="example" id="orgd3c71b6">
 'distclean' finished successfully (0.002s)
 Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
 Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
@@ -165,7 +165,7 @@ In addition to the variables we set directly or through <code>find_program()</co
 </pre>
 </div>
 
-<pre class="example" id="org95546b2">
+<pre class="example" id="org14897fb">
 Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
 Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
 Checking for program 'cc'                : gcc 
@@ -185,7 +185,7 @@ Waf will persist an environments persist between calls to <code>configure</code>
 </pre>
 </div>
 
-<pre class="example" id="orgc8b9256">
+<pre class="example" id="orgc0619b7">
 Waf: Entering directory `/home/bv/org/topics/waf/tour/calling-environment/build'
 from build:
 	FOO = bar
@@ -203,7 +203,7 @@ Rerunning <code>configure</code> will reset all variables.
 </pre>
 </div>
 
-<pre class="example" id="org2f279ea">
+<pre class="example" id="org9ab79a9">
 Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
 Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
 Checking for program 'cc'                : /usr/bin/cc 
@@ -218,8 +218,8 @@ Checking for program 'cc'                : /usr/bin/cc
 </div>
 </div>
 
-<div id="outline-container-org309b97e" class="outline-2">
-<h2 id="org309b97e"><span class="section-number-2">3.</span> Nodes</h2>
+<div id="outline-container-org192a916" class="outline-2">
+<h2 id="org192a916"><span class="section-number-2">3.</span> Nodes</h2>
 <div class="outline-text-2" id="text-3">
 <p>
 Waf abstracts the file system into instances of a class <code>Node</code>.  Nodes may be collected into a tree with a node representing a directory continuing children nodes or representing a file.  Nodes may be created to represent an as yet non-existent file or directory.
@@ -252,7 +252,7 @@ Waf abstracts the file system into instances of a class <code>Node</code>.  Node
 Here we print a few path values, make use of <code>.parent</code>.  We also call node methods <code>find_resource()</code> (a node that must exist in the source) and <code>find_or_declare()</code> (a node that may exist already in the source or the build area or which may be created during the build) and <code>make_node()</code> to create a node from thin air.  We also use a node as an file-like object to write.  Finally, we tie it all into a rule that combines two source files, one that we created, to a target.
 </p>
 
-<div class="note" id="orge36b2c0">
+<div class="note" id="orga0c4633">
 <p>
 We will discus rules next.
 </p>
@@ -265,7 +265,7 @@ We will discus rules next.
 </pre>
 </div>
 
-<pre class="example" id="org1a070cc">
+<pre class="example" id="orge66ac4c">
 Setting top to                           : /home/bv/org/topics/waf/tour/node-features 
 Setting out to                           : /home/bv/org/topics/waf/tour/node-features/build 
 cfg.path = /home/bv/org/topics/waf/tour/node-features
@@ -280,7 +280,7 @@ Waf: Leaving directory `/home/bv/org/topics/waf/tour/node-features/build'
 'build' finished successfully (0.011s)
 </pre>
 
-<div class="note" id="orgd5ada09">
+<div class="note" id="org8109569">
 <p>
 The <code>.path</code> points to the current source directory.  In a simple project, as in the example, this is the top-level directory.  When a project consists of a number of sub-projects each in a sub directory and each with a <code>wscript</code> file, the <code>.path</code> will changes as the build descends.  By setting the top-level variable <code>top</code> in a <code>wscript</code> file an alternative source directory may be specified.  In addition the default location of <code>build/</code> for receiving targets may be changed by setting the variable <code>out</code> in the <code>wscript</code> file.
 </p>
@@ -292,7 +292,7 @@ The <code>.path</code> points to the current source directory.  In a simple proj
 </pre>
 </div>
 
-<pre class="example" id="org0747ca8">
+<pre class="example" id="org582a18e">
 # end of file.
 </pre>
 </div>
@@ -301,8 +301,8 @@ The <code>.path</code> points to the current source directory.  In a simple proj
 
 
 
-<div id="outline-container-org0fa0000" class="outline-2">
-<h2 id="org0fa0000"><span class="section-number-2">4.</span> Rules</h2>
+<div id="outline-container-org9b5e085" class="outline-2">
+<h2 id="org9b5e085"><span class="section-number-2">4.</span> Rules</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 The kernel of Waf operation is a <b>rule</b>.  It specifies a file transformation parameterized by the input or <b>source</b> files and/or the output or <b>target</b> files.
@@ -325,7 +325,7 @@ hard-wired.
 </pre>
 </div>
 
-<div class="warning" id="orgb1b54d7">
+<div class="warning" id="orgda0f37b">
 <p>
 Normally, one will never define fully literal rule commands nor hide input and output files from Waf as we do in this example.
 </p>
@@ -342,7 +342,7 @@ waf distclean configure build
 </pre>
 </div>
 
-<pre class="example" id="org0eada43">
+<pre class="example" id="org63e2ba2">
 'distclean' finished successfully (0.002s)
 Setting top to                           : /home/bv/org/topics/waf/tour/this-to-that 
 Setting out to                           : /home/bv/org/topics/waf/tour/this-to-that/build 
@@ -369,7 +369,7 @@ Even though we have denied Waf any knowledge of what files the rule produced, it
 </pre>
 </div>
 
-<pre class="example" id="org0497e2d">
+<pre class="example" id="orgbc7c08f">
 Waf: Entering directory `/home/bv/org/topics/waf/tour/this-to-that/build'
 Waf: Leaving directory `/home/bv/org/topics/waf/tour/this-to-that/build'
 'build' finished successfully (0.018s)
@@ -398,7 +398,7 @@ The <code>SRC</code> and <code>TGT</code> variables referenced in the rule strin
 
 
 
-<div class="note" id="org25f88c4">
+<div class="note" id="org64c3279">
 <p>
 Although we know that targets go into <code>build/</code> we need not mention that directory.
 </p>
@@ -423,8 +423,8 @@ We suppress the output this time as it is same as above.
 </div>
 
 
-<div id="outline-container-org2a4a075" class="outline-3">
-<h3 id="org2a4a075"><span class="section-number-3">4.3.</span> Rule function</h3>
+<div id="outline-container-org20af9e5" class="outline-3">
+<h3 id="org20af9e5"><span class="section-number-3">4.3.</span> Rule function</h3>
 <div class="outline-text-3" id="text-4-3">
 <p>
 So far, a rule has been given as a parameterized or templated command line string.  A rule can also be a Python function.  
@@ -450,20 +450,20 @@ The <code>copy()</code> rule implements a primitive version of the <code>cp</cod
 </div>
 </div>
 
-<div id="outline-container-orgae5f58f" class="outline-2">
-<h2 id="orgae5f58f"><span class="section-number-2">5.</span> Tasks</h2>
+<div id="outline-container-org0e7e71a" class="outline-2">
+<h2 id="org0e7e71a"><span class="section-number-2">5.</span> Tasks</h2>
 </div>
-<div id="outline-container-orgef448e0" class="outline-2">
-<h2 id="orgef448e0"><span class="section-number-2">6.</span> Task generators</h2>
+<div id="outline-container-orgdce8b25" class="outline-2">
+<h2 id="orgdce8b25"><span class="section-number-2">6.</span> Task generators</h2>
 </div>
-<div id="outline-container-org695654a" class="outline-2">
-<h2 id="org695654a"><span class="section-number-2">7.</span> Contexts</h2>
+<div id="outline-container-org734b458" class="outline-2">
+<h2 id="org734b458"><span class="section-number-2">7.</span> Contexts</h2>
 </div>
-<div id="outline-container-orgb0067c8" class="outline-2">
-<h2 id="orgb0067c8"><span class="section-number-2">8.</span> Options</h2>
+<div id="outline-container-org25bdd00" class="outline-2">
+<h2 id="org25bdd00"><span class="section-number-2">8.</span> Options</h2>
 </div>
-<div id="outline-container-org51ed38e" class="outline-2">
-<h2 id="org51ed38e"><span class="section-number-2">9.</span> Configuration</h2>
+<div id="outline-container-org172e7fa" class="outline-2">
+<h2 id="org172e7fa"><span class="section-number-2">9.</span> Configuration</h2>
 <div class="outline-text-2" id="text-9">
 <p>
 The <code>configuration()</code> function has already been used in a number of examples.  Here we further explore what this function may do.
@@ -471,26 +471,26 @@ The <code>configuration()</code> function has already been used in a number of e
 </div>
 </div>
 
-<div id="outline-container-org65c8131" class="outline-2">
-<h2 id="org65c8131"><span class="section-number-2">10.</span> Tools</h2>
+<div id="outline-container-org3dd2b62" class="outline-2">
+<h2 id="org3dd2b62"><span class="section-number-2">10.</span> Tools</h2>
 <div class="outline-text-2" id="text-10">
 </div>
-<div id="outline-container-org0989b69" class="outline-3">
-<h3 id="org0989b69"><span class="section-number-3">10.1.</span> Using tools</h3>
+<div id="outline-container-org8bf4a11" class="outline-3">
+<h3 id="org8bf4a11"><span class="section-number-3">10.1.</span> Using tools</h3>
 </div>
-<div id="outline-container-org1b73e00" class="outline-3">
-<h3 id="org1b73e00"><span class="section-number-3">10.2.</span> Writing tools</h3>
+<div id="outline-container-orgdb6e961" class="outline-3">
+<h3 id="orgdb6e961"><span class="section-number-3">10.2.</span> Writing tools</h3>
 </div>
-<div id="outline-container-orgc3c6225" class="outline-3">
-<h3 id="orgc3c6225"><span class="section-number-3">10.3.</span> Built in and extra tools</h3>
+<div id="outline-container-org921250b" class="outline-3">
+<h3 id="org921250b"><span class="section-number-3">10.3.</span> Built in and extra tools</h3>
 </div>
-<div id="outline-container-orgc2e961f" class="outline-3">
-<h3 id="orgc2e961f"><span class="section-number-3">10.4.</span> Distributing tools</h3>
+<div id="outline-container-org3069a44" class="outline-3">
+<h3 id="org3069a44"><span class="section-number-3">10.4.</span> Distributing tools</h3>
 </div>
 </div>
 
-<div id="outline-container-org1a7ca73" class="outline-2">
-<h2 id="org1a7ca73"><span class="section-number-2">11.</span> Advanced Waf</h2>
+<div id="outline-container-orgd09e25e" class="outline-2">
+<h2 id="orgd09e25e"><span class="section-number-2">11.</span> Advanced Waf</h2>
 <div class="outline-text-2" id="text-11">
 <p>
 Much can be done simply with Waf as described so far.  A dividing line between simple and advance may be crossed when it becomes necessary to extend Waf itself.  Extension is done by &ldquo;bolting on&rdquo; and sometimes altering methods and values to Waf internal classes and objects.  This is a perfectly acceptable thing to do and Waf provides some facilities and documentation on how to do it.  However, it is one of the more complex ways to work with Waf, at least for this tourist.
@@ -500,7 +500,7 @@ Much can be done simply with Waf as described so far.  A dividing line between s
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: BV</p>
-<p class="date">Created: 2023-04-09 Sun 17:38</p>
+<p class="date">Created: 2023-04-09 Sun 17:44</p>
 <p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
