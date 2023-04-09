@@ -1,0 +1,281 @@
+#+title: A Tour of Waf
+#+SETUPFILE: setup.org
+#+export_file_name: index
+
+* Introduction
+
+The [[https://waf.io/book][Waf book]] opens by aptly describing Waf as an extensible build system.  That book is well written and along with the [[https://waf.io/apidocs/][API documentation]] and the [[https://waf.io/faq.html][FAQ]] waf documentation is comprehensive.  The goal of this Waf tour is to collect additional understanding of the Waf system from the point of view of a long time, if still amateur user, in the hopes it will augment existing Waf documentation.
+
+** Concepts
+
+A Waf *build* is the execution of a set of interdependent /tasks/.  
+A task consumes a number of *sources* and produces a number of *targets*.  Sources and targets may be files, which Waf abstracts into objects called *nodes*.  Sources may also be values of variables in a Waf *environment*.  Tasks may be defined directly in a ~wscript~ file that provides Waf directives expressed in the Python language.  Tasks may also be created during the build with *task generators*.  Code to produce tasks may be bundled into reusable Waf *tools*.  The detailed nature of the build may be controlled through a Waf *configuration* and that configuration is communicated and persisted with one or more Waf *environments*.  The graph of tasks, sources and targets may be factored into one or more subgraphs or Waf *groups*.  Each group will be executed in sequence.  Within a group, tasks will execute in parallel to the extent possible, limited by dependencies and a maximum allowed number of jobs.
+Finally, configuration and build and other commands are managed through Waf *contexts*.
+
+** Examples
+
+This tour will have a number of examples.  They are run as part of preparing this document into HTML or PDF.  Generally they include three major waf commands in a step like:
+
+#+begin_example
+  waf distclean configure build
+#+end_example
+
+The ~distclean~ is not typically required nor desired.  It is included here to assure each example runs from a known initial state.
+
+
+* Environment
+
+A Waf environment is similar to but distinct from both the shell environment that runs the ~waf~ command and the shell environments that may run commands in the service of a task.  Where not otherwise qualified, an /environment/ or /env/ will refer to a Waf environment.
+
+** Calling environment
+:PROPERTIES:
+:CUSTOM_ID: calling-environment
+:END:
+
+In general, the value of a variable in the calling shell environment has no impact on values in a Waf environment.  However, some Waf code will allow the shell environment to influence values in the Waf environment.
+
+#+include: calling-environment/wscript src python
+
+In ~configure()~ we set the Waf environment variable ~FOO~.  We also instruct Waf to find the program ~cc~.  By default, the resulting location will be placed in an environment variable of the same name but capitalized, namely here ~CC~.
+
+#+begin_src bash :dir calling-environment :exports both :results output :wrap example
+  waf distclean configure
+#+end_src
+
+#+RESULTS:
+#+begin_example
+'distclean' finished successfully (0.002s)
+Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
+Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
+Checking for program 'cc'                : /usr/bin/cc 
+'BINDIR' '/usr/local/bin'
+'CC' ['/usr/bin/cc']
+'FOO' 'bar'
+'LIBDIR' '/usr/local/lib'
+'PREFIX' '/usr/local'
+'configure' finished successfully (0.003s)
+#+end_example
+
+In addition to the variables we set directly or through ~find_program()~, Waf has set ~PREFIX~, ~BINDIR~ and ~LIBDIR~.  We may return ~configure~ with some shell environment variables set.
+
+#+begin_src bash :dir calling-environment :exports both :results output :wrap example
+  PREFIX=/tmp CC=gcc FOO=baz waf configure
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
+Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
+Checking for program 'cc'                : gcc 
+from configure:
+	FOO = bar
+	CC = ['gcc']
+'configure' finished successfully (0.003s)
+#+end_example
+
+Note ~FOO~ remains unchanged while ~CC~ takes the value we gave in the shell environment.  Not only is ~PREFIX~ changed but so are the two directories.
+Waf will persist an environments persist between calls to ~configure~ and ~build~.
+
+#+begin_src bash :dir calling-environment :exports both :results output :wrap example
+  PREFIX=/nope waf build
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Waf: Entering directory `/home/bv/org/topics/waf/tour/calling-environment/build'
+from build:
+	FOO = bar
+	CC = ['gcc']
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/calling-environment/build'
+'build' finished successfully (0.011s)
+#+end_example
+
+Rerunning ~configure~ will reset all variables.
+
+#+begin_src bash :dir calling-environment :exports both :results output :wrap example
+  waf configure
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
+Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
+Checking for program 'cc'                : /usr/bin/cc 
+'BINDIR' '/usr/local/bin'
+'CC' ['/usr/bin/cc']
+'FOO' 'bar'
+'LIBDIR' '/usr/local/lib'
+'PREFIX' '/usr/local'
+'configure' finished successfully (0.004s)
+#+end_example
+
+* Nodes
+
+Waf abstracts the file system into instances of a class ~Node~.  Nodes may be collected into a tree with a node representing a directory continuing children nodes or representing a file.  Nodes may be created to represent an as yet non-existent file or directory.
+
+** Node features
+:PROPERTIES:
+:CUSTOM_ID: node-features
+:END:
+
+#+include: node-features/wscript src python
+
+Here we print a few path values, make use of ~.parent~.  We also call node methods ~find_resource()~ (a node that must exist in the source) and ~find_or_declare()~ (a node that may exist already in the source or the build area or which may be created during the build) and ~make_node()~ to create a node from thin air.  We also use a node as an file-like object to write.  Finally, we tie it all into a rule that combines two source files, one that we created, to a target.
+
+#+begin_note
+We will discus rules next.
+#+end_note
+
+
+#+begin_src bash :dir node-features :exports both :results output :wrap example
+  waf configure build
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Setting top to                           : /home/bv/org/topics/waf/tour/node-features 
+Setting out to                           : /home/bv/org/topics/waf/tour/node-features/build 
+cfg.path = /home/bv/org/topics/waf/tour/node-features
+Checking for program 'cat'               : /usr/bin/cat 
+'configure' finished successfully (0.004s)
+Waf: Entering directory `/home/bv/org/topics/waf/tour/node-features/build'
+bld.path = /home/bv/org/topics/waf/tour/node-features
+bld.bldnode = /home/bv/org/topics/waf/tour/node-features/build
+wscript = /home/bv/org/topics/waf/tour/node-features/wscript
+parent = /home/bv/org/topics/waf/tour/node-features
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/node-features/build'
+'build' finished successfully (0.011s)
+#+end_example
+
+#+begin_note
+The ~.path~ points to the current source directory.  In a simple project, as in the example, this is the top-level directory.  When a project consists of a number of sub-projects each in a sub directory and each with a ~wscript~ file, the ~.path~ will changes as the build descends.  By setting the top-level variable ~top~ in a ~wscript~ file an alternative source directory may be specified.  In addition the default location of ~build/~ for receiving targets may be changed by setting the variable ~out~ in the ~wscript~ file.
+#+end_note
+
+#+begin_src bash :dir node-features :exports both :results output :wrap example
+  tail -1 build/that.txt
+#+end_src
+
+#+RESULTS:
+#+begin_example
+# end of file.
+#+end_example
+
+
+
+* Rules
+
+The kernel of Waf operation is a *rule*.  It specifies a file transformation parameterized by the input or *source* files and/or the output or *target* files.
+
+** This to that
+:PROPERTIES:
+:CUSTOM_ID: this-to-that
+:END:
+
+Produce one file from another file with a command and everything is
+hard-wired.
+
+#+include: this-to-that/wscript src python
+
+#+begin_warning
+Normally, one will never define fully literal rule commands nor hide input and output files from Waf as we do in this example.
+#+end_warning
+
+Waf runs tasks from the ~build/~ directory and normally all targets produced by a task should place files into this same directory.  Waf will assure proper file placement but here we are cutting Waf out of that duty.  Next section will repeat this example in a more proper manner.
+
+#+begin_src bash :dir this-to-that :exports both :results output :wrap example
+  date > this.txt
+  waf distclean configure build
+#+end_src
+
+#+RESULTS:
+#+begin_example
+'distclean' finished successfully (0.002s)
+Setting top to                           : /home/bv/org/topics/waf/tour/this-to-that 
+Setting out to                           : /home/bv/org/topics/waf/tour/this-to-that/build 
+'configure' finished successfully (0.002s)
+Waf: Entering directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+[1/1] Running cp ../this.txt that.txt
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+'build' finished successfully (0.019s)
+Sat Apr  8 05:19:18 PM EDT 2023
+Sat Apr  8 05:19:18 PM EDT 2023
+#+end_example
+
+#+begin_src bash :dir this-to-that :exports both :results output :wrap example
+  cat this.txt build/that.txt
+#+end_src
+
+Even though we have denied Waf any knowledge of what files the rule produced, it knows that it successfully ran the task once and will not rerun it:
+
+#+begin_src bash :dir this-to-that :exports both :results output :wrap example
+  waf build
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Waf: Entering directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+'build' finished successfully (0.018s)
+#+end_example
+
+** Source to target
+:PROPERTIES:
+:CUSTOM_ID: source-to-target
+:END:
+
+Here we do not deny Waf the knowledge of the input and output to a rule to repeat the above example in a more proper way.
+
+#+include: source-to-target/wscript src python
+
+The ~SRC~ and ~TGT~ variables referenced in the rule string map to an list of input and output nodes, respectively.  A node is a Waf file or directory object.  By default, ~${SRC}~ expands to a space separated list of the paths of the nodes in the input array.  Individual nodes in the array may be addressed through indexing, as in ~${SRC[0]}~.  Node methods may be called for example, ~${SRC[0].abspath()}~.
+
+
+
+#+begin_note
+Although we know that targets go into ~build/~ we need not mention that directory.
+
+And, when specifying ~source~ or ~target~, Waf is generous in that it can accept a file name as a string or array of file name strings, a node or array of node. 
+#+end_note
+
+
+#+begin_src bash :dir source-to-target :exports code :results none
+  date > this.txt
+  waf distclean configure build
+#+end_src
+
+We suppress the output this time as it is same as above.
+
+
+** Rule function
+
+So far, a rule has been given as a parameterized or templated command line string.  A rule can also be a Python function.  
+
+#+include: rule-function/wscript src python
+
+The ~copy()~ rule implements a primitive version of the ~cp~ command.  We will again omit the output of running this example.
+
+#+begin_src bash :dir rule-function :exports none :results none
+  date > this.txt
+  waf distclean configure build
+#+end_src
+
+
+* Tasks
+* Task generators
+* Contexts
+* Options
+* Configuration
+
+The ~configuration()~ function has already been used in a number of examples.  Here we further explore what this function may do.
+
+* Tools
+
+** Using tools
+** Writing tools
+** Built in and extra tools
+** Distributing tools
+
+* Advanced Waf
+
+Much can be done simply with Waf as described so far.  A dividing line between simple and advance may be crossed when it becomes necessary to extend Waf itself.  Extension is done by "bolting on" and sometimes altering methods and values to Waf internal classes and objects.  This is a perfectly acceptable thing to do and Waf provides some facilities and documentation on how to do it.  However, it is one of the more complex ways to work with Waf, at least for this tourist.
+

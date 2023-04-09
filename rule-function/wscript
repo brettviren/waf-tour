@@ -1,0 +1,10 @@
+from waflib.Utils import subst_vars
+def copy(task):
+    src = task.inputs[0]
+    tgt = task.outputs[0]
+    tgt.write(src.read())
+def configure(cfg):
+    pass
+def build(bld):
+    bld(rule=copy, source="this.txt", target="that.txt")
+    

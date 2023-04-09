@@ -1,0 +1,8 @@
+*~
+*.pdf
+*.html
+*.lock-waf*
+build
+__pycache__
+*.tex
+this.txt

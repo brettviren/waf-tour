@@ -1,0 +1,4 @@
+def configure(cfg):
+    pass
+def build(bld):
+    bld(rule="cp ${SRC} ${TGT}", source="this.txt", target="that.txt")

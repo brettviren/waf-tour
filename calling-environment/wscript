@@ -1,0 +1,7 @@
+from waflib.Logs import info
+def configure(cfg):
+    cfg.env.FOO = "bar"
+    cfg.find_program("cc")
+    info(str(cfg.env))
+def build(bld):
+    info(str(bld.env))

@@ -1,0 +1,15 @@
+from waflib.Logs import info
+def configure(cfg):
+    info(f'cfg.path = {cfg.path}')
+    cfg.find_program('cat')
+def build(bld):
+    info(f'bld.path = {bld.path}')
+    info(f'bld.bldnode = {bld.bldnode}')
+    wscript = bld.path.find_resource("wscript")
+    info(f'wscript = {wscript}')
+    info(f'parent = {wscript.parent}')
+    this = bld.path.make_node("this.txt")
+    this.write("# end of file.\n")
+    that = bld.path.find_or_declare("that.txt")
+    bld(rule="${CAT} ${SRC} > ${TGT}", shell=True,
+        source=[wscript, this], target=that)

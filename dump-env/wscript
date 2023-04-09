@@ -1,0 +1,7 @@
+top="sub"
+from waflib.Logs import info
+def configure(cfg):
+    print (cfg.path)
+    info(cfg.env)
+def build(bld):
+    info(bld.env)

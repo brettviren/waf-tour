@@ -1,0 +1,7 @@
+def configure(cfg):
+    pass
+def build(bld):
+    a = bld.path.find_resource("a.txt")
+    b = a.parent.make_node("b.txt")
+    bld(rule="cp ${SRC} ${TGT}", source=a, target=b)
+
