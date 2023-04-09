@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2023-04-09 Sun 17:38 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A Tour of Waf</title>
+<meta name="author" content="BV" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" type="text/css" href="org-html-themes/src/readtheorg_theme/css/htmlize.css"/>
+<link rel="stylesheet" type="text/css" href="org-html-themes/src/readtheorg_theme/css/readtheorg.css"/>
+<script type="text/javascript" src="org-html-themes/src/lib/js/jquery.min.js"></script>
+<script type="text/javascript" src="org-html-themes/src/lib/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="org-html-themes/src/lib/js/jquery.stickytableheaders.min.js"></script>
+<script type="text/javascript" src="org-html-themes/src/readtheorg_theme/js/readtheorg.js"></script>
+<style> #content{max-width:1800px;}</style>
+<style> p{max-width:800px;}</style>
+<style> li{max-width:800px;}</style>
+<style> pre.src{border-radius: 5px; background-color:#ccc; color:black;}</style>
+<style> pre.example{border-radius: 5px; background-color:#ccc; color:black;}</style>
+<style> code{border-radius: 5px; background-color:#ccc; color:black;}</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">A Tour of Waf</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org95706bc">1. Introduction</a>
+<ul>
+<li><a href="#orgbfa960e">1.1. Concepts</a></li>
+<li><a href="#org0491e11">1.2. Examples</a></li>
+</ul>
+</li>
+<li><a href="#org5ab10bb">2. Environment</a>
+<ul>
+<li><a href="#calling-environment">2.1. Calling environment</a></li>
+</ul>
+</li>
+<li><a href="#org309b97e">3. Nodes</a>
+<ul>
+<li><a href="#node-features">3.1. Node features</a></li>
+</ul>
+</li>
+<li><a href="#org0fa0000">4. Rules</a>
+<ul>
+<li><a href="#this-to-that">4.1. This to that</a></li>
+<li><a href="#source-to-target">4.2. Source to target</a></li>
+<li><a href="#org2a4a075">4.3. Rule function</a></li>
+</ul>
+</li>
+<li><a href="#orgae5f58f">5. Tasks</a></li>
+<li><a href="#orgef448e0">6. Task generators</a></li>
+<li><a href="#org695654a">7. Contexts</a></li>
+<li><a href="#orgb0067c8">8. Options</a></li>
+<li><a href="#org51ed38e">9. Configuration</a></li>
+<li><a href="#org65c8131">10. Tools</a>
+<ul>
+<li><a href="#org0989b69">10.1. Using tools</a></li>
+<li><a href="#org1b73e00">10.2. Writing tools</a></li>
+<li><a href="#orgc3c6225">10.3. Built in and extra tools</a></li>
+<li><a href="#orgc2e961f">10.4. Distributing tools</a></li>
+</ul>
+</li>
+<li><a href="#org1a7ca73">11. Advanced Waf</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org95706bc" class="outline-2">
+<h2 id="org95706bc"><span class="section-number-2">1.</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The <a href="https://waf.io/book">Waf book</a> opens by aptly describing Waf as an extensible build system.  That book is well written and along with the <a href="https://waf.io/apidocs/">API documentation</a> and the <a href="https://waf.io/faq.html">FAQ</a> waf documentation is comprehensive.  The goal of this Waf tour is to collect additional understanding of the Waf system from the point of view of a long time, if still amateur user, in the hopes it will augment existing Waf documentation.
+</p>
+</div>
+
+<div id="outline-container-orgbfa960e" class="outline-3">
+<h3 id="orgbfa960e"><span class="section-number-3">1.1.</span> Concepts</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+A Waf <b>build</b> is the execution of a set of interdependent <i>tasks</i>.  
+A task consumes a number of <b>sources</b> and produces a number of <b>targets</b>.  Sources and targets may be files, which Waf abstracts into objects called <b>nodes</b>.  Sources may also be values of variables in a Waf <b>environment</b>.  Tasks may be defined directly in a <code>wscript</code> file that provides Waf directives expressed in the Python language.  Tasks may also be created during the build with <b>task generators</b>.  Code to produce tasks may be bundled into reusable Waf <b>tools</b>.  The detailed nature of the build may be controlled through a Waf <b>configuration</b> and that configuration is communicated and persisted with one or more Waf <b>environments</b>.  The graph of tasks, sources and targets may be factored into one or more subgraphs or Waf <b>groups</b>.  Each group will be executed in sequence.  Within a group, tasks will execute in parallel to the extent possible, limited by dependencies and a maximum allowed number of jobs.
+Finally, configuration and build and other commands are managed through Waf <b>contexts</b>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0491e11" class="outline-3">
+<h3 id="org0491e11"><span class="section-number-3">1.2.</span> Examples</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+This tour will have a number of examples.  They are run as part of preparing this document into HTML or PDF.  Generally they include three major waf commands in a step like:
+</p>
+
+<pre class="example" id="org663c7b3">
+waf distclean configure build
+</pre>
+
+<p>
+The <code>distclean</code> is not typically required nor desired.  It is included here to assure each example runs from a known initial state.
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org5ab10bb" class="outline-2">
+<h2 id="org5ab10bb"><span class="section-number-2">2.</span> Environment</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+A Waf environment is similar to but distinct from both the shell environment that runs the <code>waf</code> command and the shell environments that may run commands in the service of a task.  Where not otherwise qualified, an <i>environment</i> or <i>env</i> will refer to a Waf environment.
+</p>
+</div>
+
+<div id="outline-container-calling-environment" class="outline-3">
+<h3 id="calling-environment"><span class="section-number-3">2.1.</span> Calling environment</h3>
+<div class="outline-text-3" id="text-calling-environment">
+<p>
+In general, the value of a variable in the calling shell environment has no impact on values in a Waf environment.  However, some Waf code will allow the shell environment to influence values in the Waf environment.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #a020f0;">from</span> waflib.Logs <span style="color: #a020f0;">import</span> info
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">configure</span>(cfg):
+    cfg.env.<span style="color: #a0522d;">FOO</span> = <span style="color: #8b2252;">"bar"</span>
+    cfg.find_program(<span style="color: #8b2252;">"cc"</span>)
+    info(<span style="color: #483d8b;">str</span>(cfg.env))
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">build</span>(bld):
+    info(<span style="color: #483d8b;">str</span>(bld.env))
+</pre>
+</div>
+
+<p>
+In <code>configure()</code> we set the Waf environment variable <code>FOO</code>.  We also instruct Waf to find the program <code>cc</code>.  By default, the resulting location will be placed in an environment variable of the same name but capitalized, namely here <code>CC</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">waf distclean configure
+</pre>
+</div>
+
+<pre class="example" id="org78740bf">
+'distclean' finished successfully (0.002s)
+Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
+Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
+Checking for program 'cc'                : /usr/bin/cc 
+'BINDIR' '/usr/local/bin'
+'CC' ['/usr/bin/cc']
+'FOO' 'bar'
+'LIBDIR' '/usr/local/lib'
+'PREFIX' '/usr/local'
+'configure' finished successfully (0.003s)
+</pre>
+
+<p>
+In addition to the variables we set directly or through <code>find_program()</code>, Waf has set <code>PREFIX</code>, <code>BINDIR</code> and <code>LIBDIR</code>.  We may return <code>configure</code> with some shell environment variables set.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span style="color: #a0522d;">PREFIX</span>=/tmp <span style="color: #a0522d;">CC</span>=gcc <span style="color: #a0522d;">FOO</span>=baz waf configure
+</pre>
+</div>
+
+<pre class="example" id="org95546b2">
+Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
+Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
+Checking for program 'cc'                : gcc 
+from configure:
+	FOO = bar
+	CC = ['gcc']
+'configure' finished successfully (0.003s)
+</pre>
+
+<p>
+Note <code>FOO</code> remains unchanged while <code>CC</code> takes the value we gave in the shell environment.  Not only is <code>PREFIX</code> changed but so are the two directories.
+Waf will persist an environments persist between calls to <code>configure</code> and <code>build</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span style="color: #a0522d;">PREFIX</span>=/nope waf build
+</pre>
+</div>
+
+<pre class="example" id="orgc8b9256">
+Waf: Entering directory `/home/bv/org/topics/waf/tour/calling-environment/build'
+from build:
+	FOO = bar
+	CC = ['gcc']
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/calling-environment/build'
+'build' finished successfully (0.011s)
+</pre>
+
+<p>
+Rerunning <code>configure</code> will reset all variables.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">waf configure
+</pre>
+</div>
+
+<pre class="example" id="org2f279ea">
+Setting top to                           : /home/bv/org/topics/waf/tour/calling-environment 
+Setting out to                           : /home/bv/org/topics/waf/tour/calling-environment/build 
+Checking for program 'cc'                : /usr/bin/cc 
+'BINDIR' '/usr/local/bin'
+'CC' ['/usr/bin/cc']
+'FOO' 'bar'
+'LIBDIR' '/usr/local/lib'
+'PREFIX' '/usr/local'
+'configure' finished successfully (0.004s)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org309b97e" class="outline-2">
+<h2 id="org309b97e"><span class="section-number-2">3.</span> Nodes</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Waf abstracts the file system into instances of a class <code>Node</code>.  Nodes may be collected into a tree with a node representing a directory continuing children nodes or representing a file.  Nodes may be created to represent an as yet non-existent file or directory.
+</p>
+</div>
+
+<div id="outline-container-node-features" class="outline-3">
+<h3 id="node-features"><span class="section-number-3">3.1.</span> Node features</h3>
+<div class="outline-text-3" id="text-node-features">
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #a020f0;">from</span> waflib.Logs <span style="color: #a020f0;">import</span> info
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">configure</span>(cfg):
+    info(f<span style="color: #8b2252;">'cfg.path = </span>{cfg.path}<span style="color: #8b2252;">'</span>)
+    cfg.find_program(<span style="color: #8b2252;">'cat'</span>)
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">build</span>(bld):
+    info(f<span style="color: #8b2252;">'bld.path = </span>{bld.path}<span style="color: #8b2252;">'</span>)
+    info(f<span style="color: #8b2252;">'bld.bldnode = </span>{bld.bldnode}<span style="color: #8b2252;">'</span>)
+    wscript = bld.path.find_resource(<span style="color: #8b2252;">"wscript"</span>)
+    info(f<span style="color: #8b2252;">'wscript = </span>{wscript}<span style="color: #8b2252;">'</span>)
+    info(f<span style="color: #8b2252;">'parent = </span>{wscript.parent}<span style="color: #8b2252;">'</span>)
+    this = bld.path.make_node(<span style="color: #8b2252;">"this.txt"</span>)
+    this.write(<span style="color: #8b2252;">"# end of file.\n"</span>)
+    that = bld.path.find_or_declare(<span style="color: #8b2252;">"that.txt"</span>)
+    bld(rule=<span style="color: #8b2252;">"${CAT} ${SRC} &gt; ${TGT}"</span>, shell=<span style="color: #008b8b;">True</span>,
+        source=[wscript, this], target=that)
+</pre>
+</div>
+
+<p>
+Here we print a few path values, make use of <code>.parent</code>.  We also call node methods <code>find_resource()</code> (a node that must exist in the source) and <code>find_or_declare()</code> (a node that may exist already in the source or the build area or which may be created during the build) and <code>make_node()</code> to create a node from thin air.  We also use a node as an file-like object to write.  Finally, we tie it all into a rule that combines two source files, one that we created, to a target.
+</p>
+
+<div class="note" id="orge36b2c0">
+<p>
+We will discus rules next.
+</p>
+
+</div>
+
+
+<div class="org-src-container">
+<pre class="src src-bash">waf configure build
+</pre>
+</div>
+
+<pre class="example" id="org1a070cc">
+Setting top to                           : /home/bv/org/topics/waf/tour/node-features 
+Setting out to                           : /home/bv/org/topics/waf/tour/node-features/build 
+cfg.path = /home/bv/org/topics/waf/tour/node-features
+Checking for program 'cat'               : /usr/bin/cat 
+'configure' finished successfully (0.004s)
+Waf: Entering directory `/home/bv/org/topics/waf/tour/node-features/build'
+bld.path = /home/bv/org/topics/waf/tour/node-features
+bld.bldnode = /home/bv/org/topics/waf/tour/node-features/build
+wscript = /home/bv/org/topics/waf/tour/node-features/wscript
+parent = /home/bv/org/topics/waf/tour/node-features
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/node-features/build'
+'build' finished successfully (0.011s)
+</pre>
+
+<div class="note" id="orgd5ada09">
+<p>
+The <code>.path</code> points to the current source directory.  In a simple project, as in the example, this is the top-level directory.  When a project consists of a number of sub-projects each in a sub directory and each with a <code>wscript</code> file, the <code>.path</code> will changes as the build descends.  By setting the top-level variable <code>top</code> in a <code>wscript</code> file an alternative source directory may be specified.  In addition the default location of <code>build/</code> for receiving targets may be changed by setting the variable <code>out</code> in the <code>wscript</code> file.
+</p>
+
+</div>
+
+<div class="org-src-container">
+<pre class="src src-bash">tail -1 build/that.txt
+</pre>
+</div>
+
+<pre class="example" id="org0747ca8">
+# end of file.
+</pre>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-org0fa0000" class="outline-2">
+<h2 id="org0fa0000"><span class="section-number-2">4.</span> Rules</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The kernel of Waf operation is a <b>rule</b>.  It specifies a file transformation parameterized by the input or <b>source</b> files and/or the output or <b>target</b> files.
+</p>
+</div>
+
+<div id="outline-container-this-to-that" class="outline-3">
+<h3 id="this-to-that"><span class="section-number-3">4.1.</span> This to that</h3>
+<div class="outline-text-3" id="text-this-to-that">
+<p>
+Produce one file from another file with a command and everything is
+hard-wired.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #a020f0;">def</span> <span style="color: #0000ff;">configure</span>(cfg):
+    <span style="color: #a020f0;">pass</span>
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">build</span>(bld):
+    bld(rule=<span style="color: #8b2252;">"cp ../this.txt that.txt"</span>)
+</pre>
+</div>
+
+<div class="warning" id="orgb1b54d7">
+<p>
+Normally, one will never define fully literal rule commands nor hide input and output files from Waf as we do in this example.
+</p>
+
+</div>
+
+<p>
+Waf runs tasks from the <code>build/</code> directory and normally all targets produced by a task should place files into this same directory.  Waf will assure proper file placement but here we are cutting Waf out of that duty.  Next section will repeat this example in a more proper manner.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">date &gt; this.txt
+waf distclean configure build
+</pre>
+</div>
+
+<pre class="example" id="org0eada43">
+'distclean' finished successfully (0.002s)
+Setting top to                           : /home/bv/org/topics/waf/tour/this-to-that 
+Setting out to                           : /home/bv/org/topics/waf/tour/this-to-that/build 
+'configure' finished successfully (0.002s)
+Waf: Entering directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+[1/1] Running cp ../this.txt that.txt
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+'build' finished successfully (0.019s)
+Sat Apr  8 05:19:18 PM EDT 2023
+Sat Apr  8 05:19:18 PM EDT 2023
+</pre>
+
+<div class="org-src-container">
+<pre class="src src-bash">cat this.txt build/that.txt
+</pre>
+</div>
+
+<p>
+Even though we have denied Waf any knowledge of what files the rule produced, it knows that it successfully ran the task once and will not rerun it:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">waf build
+</pre>
+</div>
+
+<pre class="example" id="org0497e2d">
+Waf: Entering directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+Waf: Leaving directory `/home/bv/org/topics/waf/tour/this-to-that/build'
+'build' finished successfully (0.018s)
+</pre>
+</div>
+</div>
+
+<div id="outline-container-source-to-target" class="outline-3">
+<h3 id="source-to-target"><span class="section-number-3">4.2.</span> Source to target</h3>
+<div class="outline-text-3" id="text-source-to-target">
+<p>
+Here we do not deny Waf the knowledge of the input and output to a rule to repeat the above example in a more proper way.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #a020f0;">def</span> <span style="color: #0000ff;">configure</span>(cfg):
+    <span style="color: #a020f0;">pass</span>
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">build</span>(bld):
+    bld(rule=<span style="color: #8b2252;">"cp ${SRC} ${TGT}"</span>, source=<span style="color: #8b2252;">"this.txt"</span>, target=<span style="color: #8b2252;">"that.txt"</span>)
+</pre>
+</div>
+
+<p>
+The <code>SRC</code> and <code>TGT</code> variables referenced in the rule string map to an list of input and output nodes, respectively.  A node is a Waf file or directory object.  By default, <code>${SRC}</code> expands to a space separated list of the paths of the nodes in the input array.  Individual nodes in the array may be addressed through indexing, as in <code>${SRC[0]}</code>.  Node methods may be called for example, <code>${SRC[0].abspath()}</code>.
+</p>
+
+
+
+<div class="note" id="org25f88c4">
+<p>
+Although we know that targets go into <code>build/</code> we need not mention that directory.
+</p>
+
+<p>
+And, when specifying <code>source</code> or <code>target</code>, Waf is generous in that it can accept a file name as a string or array of file name strings, a node or array of node. 
+</p>
+
+</div>
+
+
+<div class="org-src-container">
+<pre class="src src-bash">date &gt; this.txt
+waf distclean configure build
+</pre>
+</div>
+
+<p>
+We suppress the output this time as it is same as above.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org2a4a075" class="outline-3">
+<h3 id="org2a4a075"><span class="section-number-3">4.3.</span> Rule function</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+So far, a rule has been given as a parameterized or templated command line string.  A rule can also be a Python function.  
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #a020f0;">from</span> waflib.Utils <span style="color: #a020f0;">import</span> subst_vars
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">copy</span>(task):
+    <span style="color: #a0522d;">src</span> = task.inputs[0]
+    <span style="color: #a0522d;">tgt</span> = task.outputs[0]
+    tgt.write(src.read())
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">configure</span>(cfg):
+    <span style="color: #a020f0;">pass</span>
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">build</span>(bld):
+    bld(rule=copy, source=<span style="color: #8b2252;">"this.txt"</span>, target=<span style="color: #8b2252;">"that.txt"</span>)
+</pre>
+</div>
+
+<p>
+The <code>copy()</code> rule implements a primitive version of the <code>cp</code> command.  We will again omit the output of running this example.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgae5f58f" class="outline-2">
+<h2 id="orgae5f58f"><span class="section-number-2">5.</span> Tasks</h2>
+</div>
+<div id="outline-container-orgef448e0" class="outline-2">
+<h2 id="orgef448e0"><span class="section-number-2">6.</span> Task generators</h2>
+</div>
+<div id="outline-container-org695654a" class="outline-2">
+<h2 id="org695654a"><span class="section-number-2">7.</span> Contexts</h2>
+</div>
+<div id="outline-container-orgb0067c8" class="outline-2">
+<h2 id="orgb0067c8"><span class="section-number-2">8.</span> Options</h2>
+</div>
+<div id="outline-container-org51ed38e" class="outline-2">
+<h2 id="org51ed38e"><span class="section-number-2">9.</span> Configuration</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+The <code>configuration()</code> function has already been used in a number of examples.  Here we further explore what this function may do.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org65c8131" class="outline-2">
+<h2 id="org65c8131"><span class="section-number-2">10.</span> Tools</h2>
+<div class="outline-text-2" id="text-10">
+</div>
+<div id="outline-container-org0989b69" class="outline-3">
+<h3 id="org0989b69"><span class="section-number-3">10.1.</span> Using tools</h3>
+</div>
+<div id="outline-container-org1b73e00" class="outline-3">
+<h3 id="org1b73e00"><span class="section-number-3">10.2.</span> Writing tools</h3>
+</div>
+<div id="outline-container-orgc3c6225" class="outline-3">
+<h3 id="orgc3c6225"><span class="section-number-3">10.3.</span> Built in and extra tools</h3>
+</div>
+<div id="outline-container-orgc2e961f" class="outline-3">
+<h3 id="orgc2e961f"><span class="section-number-3">10.4.</span> Distributing tools</h3>
+</div>
+</div>
+
+<div id="outline-container-org1a7ca73" class="outline-2">
+<h2 id="org1a7ca73"><span class="section-number-2">11.</span> Advanced Waf</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+Much can be done simply with Waf as described so far.  A dividing line between simple and advance may be crossed when it becomes necessary to extend Waf itself.  Extension is done by &ldquo;bolting on&rdquo; and sometimes altering methods and values to Waf internal classes and objects.  This is a perfectly acceptable thing to do and Waf provides some facilities and documentation on how to do it.  However, it is one of the more complex ways to work with Waf, at least for this tourist.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: BV</p>
+<p class="date">Created: 2023-04-09 Sun 17:38</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

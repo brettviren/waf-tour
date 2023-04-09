@@ -2,6 +2,14 @@
 #+SETUPFILE: setup.org
 #+export_file_name: index
 
+* Meta :noexport:
+
+If you are reading this, you are not seeing all content.  See:
+
+- [[https://github.com/brettviren/waf-tour/][HTML]]
+- [[https://github.com/brettviren/waf-tour/waf-tour.pdf][PDF]]
+
+
 * Introduction
 
 The [[https://waf.io/book][Waf book]] opens by aptly describing Waf as an extensible build system.  That book is well written and along with the [[https://waf.io/apidocs/][API documentation]] and the [[https://waf.io/faq.html][FAQ]] waf documentation is comprehensive.  The goal of this Waf tour is to collect additional understanding of the Waf system from the point of view of a long time, if still amateur user, in the hopes it will augment existing Waf documentation.
